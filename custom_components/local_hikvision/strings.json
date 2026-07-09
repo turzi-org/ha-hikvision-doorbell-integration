@@ -1,0 +1,102 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Hikvision door station",
+        "data": {
+          "host": "Host",
+          "username": "Username",
+          "password": "Password",
+          "port": "Port",
+          "use_tls": "Use HTTPS"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This device is already configured"
+    }
+  },
+  "entity": {
+    "lock": {
+      "door": { "name": "Door {door}" }
+    },
+    "binary_sensor": {
+      "online": { "name": "Online" },
+      "door_contact": { "name": "Door {door} contact" }
+    },
+    "event": {
+      "access": { "name": "Access" }
+    }
+  },
+  "services": {
+    "open_door": {
+      "name": "Open door",
+      "description": "Momentarily actuate a door relay.",
+      "fields": {
+        "device_id": { "name": "Device", "description": "Target Hikvision device." },
+        "door_no": { "name": "Door number", "description": "1-based door/relay number." }
+      }
+    },
+    "add_user": {
+      "name": "Add user",
+      "description": "Enroll a person on the device (rights/PIN are managed separately).",
+      "fields": {
+        "device_id": { "name": "Device", "description": "Target Hikvision device." },
+        "employee_no": { "name": "Employee number", "description": "Unique person id." },
+        "name": { "name": "Name", "description": "Display name." },
+        "room_number": { "name": "Room number", "description": "Optional room." },
+        "floor_number": { "name": "Floor number", "description": "Optional floor." },
+        "valid_begin": { "name": "Valid from", "description": "Start of validity." },
+        "valid_end": { "name": "Valid until", "description": "End of validity." }
+      }
+    },
+    "add_card": {
+      "name": "Add card",
+      "description": "Enroll a card/tag for a person.",
+      "fields": {
+        "device_id": { "name": "Device", "description": "Target Hikvision device." },
+        "employee_no": { "name": "Employee number", "description": "Person id." },
+        "card_no": { "name": "Card number", "description": "Card/tag number." }
+      }
+    },
+    "upload_face": {
+      "name": "Upload face",
+      "description": "Enroll a face picture for a person from a local image file.",
+      "fields": {
+        "device_id": { "name": "Device", "description": "Target Hikvision device." },
+        "employee_no": { "name": "Employee number", "description": "Person id." },
+        "image_path": { "name": "Image path", "description": "Path to a JPEG file." }
+      }
+    },
+    "delete_user": {
+      "name": "Delete user",
+      "description": "Remove a person and their linked credentials.",
+      "fields": {
+        "device_id": { "name": "Device", "description": "Target Hikvision device." },
+        "employee_no": { "name": "Employee number", "description": "Person id." }
+      }
+    },
+    "delete_card": {
+      "name": "Delete card",
+      "description": "Remove the card(s) linked to a person.",
+      "fields": {
+        "device_id": { "name": "Device", "description": "Target Hikvision device." },
+        "employee_no": { "name": "Employee number", "description": "Person id." }
+      }
+    },
+    "set_remote_check": {
+      "name": "Set remote verification",
+      "description": "Enable/disable native remote verification. WARNING: enabling it makes the door defer to your platform; entries fail if nothing answers within the timeout.",
+      "fields": {
+        "device_id": { "name": "Device", "description": "Target Hikvision device." },
+        "enabled": { "name": "Enabled", "description": "Turn remote verification on/off." },
+        "timeout": { "name": "Timeout", "description": "Seconds to wait for a verdict (1-10)." }
+      }
+    }
+  }
+}

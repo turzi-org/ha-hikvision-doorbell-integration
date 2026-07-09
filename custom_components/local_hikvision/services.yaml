@@ -1,0 +1,135 @@
+# SPDX-FileCopyrightText: 2026 Turzi
+# SPDX-License-Identifier: Apache-2.0
+
+open_door:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: local_hikvision
+    door_no:
+      required: true
+      example: 1
+      selector:
+        number:
+          min: 1
+          max: 8
+          mode: box
+
+add_user:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: local_hikvision
+    employee_no:
+      required: true
+      example: "1001"
+      selector:
+        text:
+    name:
+      required: true
+      example: "Jane Doe"
+      selector:
+        text:
+    room_number:
+      required: false
+      example: 305
+      selector:
+        number:
+          min: 1
+          mode: box
+    floor_number:
+      required: false
+      selector:
+        number:
+          min: 0
+          mode: box
+    valid_begin:
+      required: false
+      selector:
+        datetime:
+    valid_end:
+      required: false
+      selector:
+        datetime:
+
+add_card:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: local_hikvision
+    employee_no:
+      required: true
+      selector:
+        text:
+    card_no:
+      required: true
+      example: "0012345678"
+      selector:
+        text:
+
+upload_face:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: local_hikvision
+    employee_no:
+      required: true
+      selector:
+        text:
+    image_path:
+      required: true
+      example: "/media/faces/1001.jpg"
+      selector:
+        text:
+
+delete_user:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: local_hikvision
+    employee_no:
+      required: true
+      selector:
+        text:
+
+delete_card:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: local_hikvision
+    employee_no:
+      required: true
+      selector:
+        text:
+
+set_remote_check:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: local_hikvision
+    enabled:
+      required: true
+      selector:
+        boolean:
+    timeout:
+      required: false
+      example: 5
+      selector:
+        number:
+          min: 1
+          max: 10
+          mode: box
