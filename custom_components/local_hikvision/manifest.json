@@ -6,6 +6,6 @@
   "documentation": "https://github.com/turzi-org/ha-hikvision-doorbell-integration",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/turzi-org/ha-hikvision-doorbell-integration/issues",
-  "requirements": ["pylocal-hikvision>=0.1.0"],
+  "requirements": ["pylocal-hikvision @ git+https://github.com/turzi-org/pylocal-hikvision.git@v0.1.0"],
   "version": "0.1.0"
 }
