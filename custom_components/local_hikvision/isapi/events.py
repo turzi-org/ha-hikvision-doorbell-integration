@@ -50,6 +50,12 @@ _ACS_SUBEVENT_LABELS: dict[int, str] = {
     # this firmware (it sends 0xd6 + unlockType="password" instead), but kept
     # for devices/firmware that do emit it directly.
     0xE5: "door_unlocked_by_public_password",
+    # "Authentication via Password Failed" — live-confirmed to carry NO
+    # credential value (no entered digits, no employeeNo): only major/sub
+    # type, deviceNo, and a snapshot photo. A failed PIN/password attempt
+    # cannot be brokered pre-open on this device (unlike an unregistered
+    # card, which does expose cardNo — see card_invalid above).
+    0x96: "password_auth_failed",
 }
 
 

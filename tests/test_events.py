@@ -31,6 +31,28 @@ _SAMPLE = (
 )
 
 
+def test_failed_password_auth_carries_no_credential_value() -> None:
+    # Real event captured on the non-prod KV9503 after entering a wrong/
+    # unregistered code ("#0000") at the keypad. Confirms empirically that a
+    # failed PIN/password attempt cannot be brokered pre-open: no entered
+    # digits, no employeeNo — only that an attempt failed, plus a photo.
+    obj = {
+        "eventType": "AccessControllerEvent",
+        "dateTime": "2026-06-02T20:03:29+08:00",
+        "AccessControllerEvent": {
+            "majorEventType": 5,
+            "subEventType": 150,
+            "deviceNo": "10010100000",
+            "currentEvent": False,
+            "picturesNumber": 1,
+        },
+    }
+    ev = parse_event_json(obj)
+    assert ev.label == "password_auth_failed"
+    assert ev.employee_no is None
+    assert ev.card_no is None
+
+
 def test_public_password_unlock_labeled_and_not_tied_to_person() -> None:
     # Real event captured on the non-prod KV9503 while entering "#9876" at the
     # keypad (a public/global password, not linked to any UserInfo record).
