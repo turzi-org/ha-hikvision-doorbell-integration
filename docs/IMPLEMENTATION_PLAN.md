@@ -114,14 +114,25 @@ guarantee.
 | Credential | Instant remote-verification on Hikvision | Consequence |
 |---|---|---|
 | **Card/NFC** | ✅ yes — `MINOR_INVALID_CARD` (0x09) event carries `cardNo` even when unregistered | Full Hybrid: instant remote-verify + local enrollment. Parity with Akuvox card flow. |
-| **PIN** | ⚠️ device stores **no per-user PIN** (live UserInfo records have no PIN field; `unlockPassword` is global). Passive ACS event also has no entered-PIN. | **Neither passive brokering nor local per-user enrollment works.** Per-resident PINs are only possible via **native remote verification** (`AcsCfg`/`remoteCheck`) — validate on non-prod. Otherwise Hikvision PINs are global-only. |
+| **PIN** | ❌ no — ACS event has no entered-PIN field, and `remoteCheckVerifyMode` (native remote-check) has no PIN-only mode | **Local-enrollment only** (which IS fully supported — see below). No unregistered/instant-PIN path; a PIN must be installed before it works. |
 | **Face** | ❌ no (inherent — a face isn't a server-verifiable value) | Local-enrollment only. Plus no face search → reconcile from DB (§8.5). |
 
-So on Hikvision the validity model is **per-credential**: cards = Hybrid; PIN/face = local-enrollment.
-This is exactly the fork in the original requirement ("if instant isn't possible, make the user wait
-until installed") — for Hikvision PINs, it's the wait-for-install branch. Card verification can use the
-brokered invalid-card event, or possibly a native platform-verify mode (`0x32`) — worth a follow-up
-config probe, but brokering already works.
+**Correction (live-validated):** per-user PIN **is** supported locally on this device — it's the
+`dynamicCode` field on `UserInfo` (confirmed by a live create→search round-trip). An earlier read of 88
+real resident records wrongly concluded PIN was unsupported, because those residents simply don't use
+one (card/face only) — the field itself works. The keypad enters it as **`# + room number + PIN`**, i.e.
+the device resolves `roomNumber` → person, then checks `dynamicCode`; `room_number` must be set
+alongside the PIN for keypad entry to work. This does **not** change the remote-verification conclusion
+above: `dynamicCode` is a *local* credential like card/face, with no passive-brokering or native
+remote-check path for *unregistered* PINs (per the confirmed `remoteCheckVerifyMode` table and the
+absent PIN field on ACS events).
+
+So on Hikvision the validity model is **per-credential**: cards = Hybrid (instant + local); PIN/face =
+local-enrollment only, no instant/unregistered path. This is exactly the fork in the original
+requirement ("if instant isn't possible, make the user wait until installed") — for Hikvision PINs, it's
+the wait-for-install branch, same as face. Card verification can use the brokered invalid-card event, or
+possibly a native platform-verify mode (`0x32`) — worth a follow-up config probe, but brokering already
+works.
 
 ---
 
@@ -287,9 +298,8 @@ Notes:
      Endpoints: `PUT /ISAPI/AccessControl/AcsCfg`, `PUT /ISAPI/AccessControl/remoteCheck`.
 3. ~~**Capacity.**~~ **RESOLVED:** 20000 users / 100000 cards / 20000 faces → everyone fits on-device for
    realistic buildings. Local edge DB is resilience/latency, not capacity-mandatory → **T1 viable**.
-4. **PIN storage field (open).** UserInfo capabilities show no explicit `password`/PIN field (has
-   `dynamicCode` 4–8, `Valid`, employeeNo). Confirm how keypad PIN is stored via a test-user write
-   (likely `password` in the UserInfo record).
+4. ~~**PIN storage field.**~~ **RESOLVED (live round-trip on non-prod):** `dynamicCode` is the real
+   per-user keypad PIN. Keypad entry = `# + roomNumber + PIN`; set `room_number` alongside `pin`.
 5. **Face reconciliation gap (new).** FDLib `isSuportFDSearch:false` → cannot list/search enrolled
    faces → reconciler can't diff device faces vs desired-state. Track face state authoritatively
    in the DB; treat device as write-only for faces.

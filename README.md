@@ -106,15 +106,18 @@ Confirmed against real hardware:
 | Face | ✅ (write-only — no face search) |
 | QR code | ✅ |
 | Validity window (start/end) | ✅ |
-| **Per-user PIN** | ❌ not stored on the device |
+| **Per-user PIN** | ✅ via `dynamicCode`, entered at the keypad as `# + room number + PIN` (requires `room_number` to be set) |
 | **Weekly / holiday schedules** | ❌ not supported |
 | Native remote verification | ✅ (coarse on/off) |
 
-**Implication:** per-resident **PINs** and **time schedules** are *not* something this
-device stores locally — they can only be handled by your platform via **remote
-verification** (the device asks your server at entry time). Cards and faces are the
-per-person credentials that live on the device. This differs from the Akuvox
-integration, where per-user PINs and schedules are local.
+**Implication:** per-resident PINs work, but are entered differently than on
+Akuvox — the resident types their **room number**, not just a code, so
+`room_number` must be set on the person for keypad entry to resolve. **Time
+schedules** are *not* something this device stores locally at all — recurring
+access windows can only be handled by your platform via **remote verification**
+(the device asks your server at entry time), or by rotating the `Valid` window
+yourself. Cards, faces, and PINs are all local per-person credentials on this
+device.
 
 ## Development
 
