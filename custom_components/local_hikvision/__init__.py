@@ -12,10 +12,10 @@ from homeassistant.const import (
     CONF_USERNAME,
 )
 from homeassistant.core import HomeAssistant
-from pylocal_hikvision import HikvisionClient
 
 from .const import CONF_USE_TLS, DEFAULT_PORT, PLATFORMS
 from .coordinator import HikvisionConfigEntry, HikvisionCoordinator
+from .isapi import HikvisionClient
 from .services import async_setup_services
 
 
