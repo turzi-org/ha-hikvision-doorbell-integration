@@ -93,12 +93,18 @@ class HikvisionClient:
         """
         scheme = "https" if use_tls else "http"
         self._base_url = f"{scheme}://{host}:{port}"
+        self._username = username
+        self._password = password
         self._client = httpx.AsyncClient(
             base_url=self._base_url,
-            auth=httpx.DigestAuth(username, password),
+            auth=self._new_auth(),
             timeout=timeout,
             verify=use_tls,
         )
+
+    def _new_auth(self) -> httpx.DigestAuth:
+        """Return a fresh DigestAuth (no cached challenge → full re-handshake)."""
+        return httpx.DigestAuth(self._username, self._password)
 
     async def __aenter__(self) -> Self:
         """Enter the async context, returning ``self``."""
@@ -145,17 +151,25 @@ class HikvisionClient:
 
         """
         headers = {"Content-Type": content_type} if content_type else None
-        try:
-            response = await self._client.request(
-                method,
-                path,
-                content=content,
-                headers=headers,
-            )
-        except httpx.TimeoutException as err:
-            raise HikvisionConnectionError(f"Timeout calling {path}") from err
-        except httpx.TransportError as err:
-            raise HikvisionConnectionError(f"Cannot reach {path}: {err}") from err
+        # The device expires digest nonces under sustained use; on a 401, reset
+        # the auth so the retry performs a fresh challenge/response handshake.
+        for attempt in range(2):
+            try:
+                response = await self._client.request(
+                    method,
+                    path,
+                    content=content,
+                    headers=headers,
+                )
+            except httpx.TimeoutException as err:
+                raise HikvisionConnectionError(f"Timeout calling {path}") from err
+            except httpx.TransportError as err:
+                raise HikvisionConnectionError(f"Cannot reach {path}: {err}") from err
+
+            if response.status_code == httpx.codes.UNAUTHORIZED and attempt == 0:
+                self._client.auth = self._new_auth()
+                continue
+            break
 
         if response.status_code == httpx.codes.UNAUTHORIZED:
             raise HikvisionAuthenticationError(f"Unauthorized calling {path}")
