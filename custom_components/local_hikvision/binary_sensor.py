@@ -12,11 +12,11 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from pylocal_hikvision import DeviceEvent
 
 from .const import DOOR_CLOSE_LABELS, DOOR_OPEN_LABELS, SIGNAL_ACCESS_EVENT
 from .coordinator import HikvisionConfigEntry, HikvisionCoordinator
 from .entity import HikvisionEntity
+from .isapi import DeviceEvent
 
 
 async def async_setup_entry(

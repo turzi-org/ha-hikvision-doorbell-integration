@@ -15,14 +15,14 @@ from homeassistant.const import (
     CONF_PORT,
     CONF_USERNAME,
 )
-from pylocal_hikvision import (
+
+from .const import CONF_USE_TLS, DEFAULT_PORT, DOMAIN
+from .isapi import (
     HikvisionAuthenticationError,
     HikvisionClient,
     HikvisionConnectionError,
     HikvisionError,
 )
-
-from .const import CONF_USE_TLS, DEFAULT_PORT, DOMAIN
 
 STEP_USER_SCHEMA = vol.Schema(
     {

@@ -9,11 +9,11 @@ from homeassistant.components.event import EventEntity
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from pylocal_hikvision import DeviceEvent
 
 from .const import EVENT_ACCESS, SIGNAL_ACCESS_EVENT
 from .coordinator import HikvisionConfigEntry, HikvisionCoordinator
 from .entity import HikvisionEntity
+from .isapi import DeviceEvent
 
 # The set of access-event labels this entity advertises + relays.
 _EVENT_TYPES = [

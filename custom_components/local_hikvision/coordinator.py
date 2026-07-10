@@ -15,7 +15,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from pylocal_hikvision import (
+
+from .const import DEFAULT_SCAN_INTERVAL, DOMAIN, SIGNAL_ACCESS_EVENT
+from .isapi import (
     Capabilities,
     DeviceEvent,
     DeviceInfo,
@@ -24,8 +26,6 @@ from pylocal_hikvision import (
     HikvisionError,
     UserCount,
 )
-
-from .const import DEFAULT_SCAN_INTERVAL, DOMAIN, SIGNAL_ACCESS_EVENT
 
 _LOGGER = logging.getLogger(__name__)
 
