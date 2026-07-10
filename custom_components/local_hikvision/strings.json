@@ -44,15 +44,16 @@
     },
     "add_user": {
       "name": "Add user",
-      "description": "Enroll a person on the device (rights/PIN are managed separately).",
+      "description": "Enroll a person on the device, optionally with a keypad PIN.",
       "fields": {
         "device_id": { "name": "Device", "description": "Target Hikvision device." },
         "employee_no": { "name": "Employee number", "description": "Unique person id." },
         "name": { "name": "Name", "description": "Display name." },
-        "room_number": { "name": "Room number", "description": "Optional room." },
+        "room_number": { "name": "Room number", "description": "Room number; required for keypad PIN entry (# + room + PIN)." },
         "floor_number": { "name": "Floor number", "description": "Optional floor." },
         "valid_begin": { "name": "Valid from", "description": "Start of validity." },
-        "valid_end": { "name": "Valid until", "description": "End of validity." }
+        "valid_end": { "name": "Valid until", "description": "End of validity." },
+        "pin": { "name": "PIN", "description": "4-8 digit keypad code. Entered at the door as # + room number + PIN." }
       }
     },
     "add_card": {

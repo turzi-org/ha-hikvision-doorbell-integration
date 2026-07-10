@@ -105,14 +105,18 @@ class Person:
     Field set matches the DS-KV9503-WBE1's actual ``UserInfo`` records (a VIS
     door station). Notes from live inspection:
 
-    - **No per-user PIN field.** Real records carry ``numOfCard``/``numOfFace``/
-      ``numOfQRcode`` but no password/PIN — per-person credentials on this device
-      are card/face/QR (linked by ``employee_no`` via ``CardInfo``/``FaceDataRecord``).
-      A per-user static PIN does not appear to be supported here; the device's
-      ``unlockPassword``/``superPassword`` are *global* door passwords. PIN-per-
-      person, if needed, is an open question (global password or remote verification).
+    - **Per-user PIN = ``dynamicCode``.** Confirmed by round-trip on real
+      hardware: written via ``add_user``, read back unchanged via
+      ``search_users``. Absent from most existing records simply because those
+      residents authenticate with card/face instead — the field itself works.
+      On the physical keypad it is entered as ``# + Room No. + PIN + OK``,
+      i.e. the device resolves ``room_number`` to a person, then checks
+      ``dynamicCode``. Set ``room_number`` alongside ``pin`` for keypad entry
+      to work.
     - **No door-rights field.** Rights/schedules are assigned via separate
-      endpoints keyed by ``employee_no`` (``UserRightWeekPlanCfg`` etc.).
+      endpoints keyed by ``employee_no`` (``UserRightWeekPlanCfg`` etc.) — but
+      this device doesn't support those (see the integration's device-limits
+      notes); only the ``Valid`` window applies.
     """
 
     employee_no: str
@@ -121,6 +125,7 @@ class Person:
     validity: Validity | None = None
     floor_number: int | None = None
     room_number: int | None = None
+    pin: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

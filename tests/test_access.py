@@ -94,6 +94,47 @@ async def test_add_user_defaults_valid_when_omitted() -> None:
 
 
 @respx.mock
+async def test_add_user_sends_pin_as_dynamic_code() -> None:
+    # dynamicCode is the keypad PIN — confirmed by live round-trip on real
+    # hardware (create with dynamicCode, read it back unchanged via search).
+    route = respx.post(f"{BASE}/ISAPI/AccessControl/UserInfo/Record").mock(
+        return_value=httpx.Response(200, json=_OK),
+    )
+    async with _client() as c:
+        await c.add_user(
+            Person(employee_no="1003", name="PIN Person", room_number=401, pin="4821"),
+        )
+    sent = json.loads(route.calls.last.request.content)["UserInfo"]
+    assert sent["dynamicCode"] == "4821"
+    assert sent["roomNumber"] == 401
+
+
+@respx.mock
+async def test_search_users_parses_pin() -> None:
+    respx.post(f"{BASE}/ISAPI/AccessControl/UserInfo/Search").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "UserInfoSearch": {
+                    "UserInfo": [
+                        {
+                            "employeeNo": "1003",
+                            "name": "PIN Person",
+                            "userType": "normal",
+                            "roomNumber": 401,
+                            "dynamicCode": "4821",
+                        },
+                    ],
+                },
+            },
+        ),
+    )
+    async with _client() as c:
+        people = await c.search_users()
+    assert people[0].pin == "4821"
+
+
+@respx.mock
 async def test_add_card_body() -> None:
     route = respx.post(f"{BASE}/ISAPI/AccessControl/CardInfo/Record").mock(
         return_value=httpx.Response(200, json=_OK),

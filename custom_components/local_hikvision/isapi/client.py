@@ -289,6 +289,11 @@ class HikvisionClient:
             user["floorNumber"] = person.floor_number
         if person.room_number is not None:
             user["roomNumber"] = person.room_number
+        if person.pin is not None:
+            # dynamicCode is the keypad PIN — confirmed by live round-trip.
+            # Keypad entry is "# + room_number + pin", so room_number must
+            # also be set for this to be enterable at the door.
+            user["dynamicCode"] = person.pin
         return {"UserInfo": user}
 
     async def add_user(self, person: Person) -> None:
@@ -359,6 +364,7 @@ class HikvisionClient:
                     user_type=str(u.get("userType", "normal")),
                     floor_number=u.get("floorNumber"),
                     room_number=u.get("roomNumber"),
+                    pin=u.get("dynamicCode"),
                     # validity round-trip (parse Valid -> Validity) deferred.
                     validity=None,
                 ),
@@ -525,9 +531,14 @@ class HikvisionClient:
             "/ISAPI/Intelligent/FDLib/capabilities?format=json",
             ("FDRecordDataMaxNum",),
         )
+        supports_pin = await self._probe_json_int(
+            "/ISAPI/AccessControl/UserInfo/capabilities?format=json",
+            ("UserInfo", "dynamicCode", "@max"),
+        ) is not None
         return Capabilities(
             door_count=door_count,
-            supports_pin=None,  # dynamicCode role unconfirmed on this VIS device
+            # dynamicCode = the per-user keypad PIN, confirmed by live round-trip.
+            supports_pin=supports_pin,
             supports_card=max_cards is not None,
             supports_face=max_faces is not None,
             # Cards report cardNo even when unregistered (brokerable); PINs do not.

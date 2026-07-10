@@ -40,6 +40,9 @@ SERVICE_SCHEMAS = {
             vol.Optional("floor_number"): vol.Coerce(int),
             vol.Optional("valid_begin"): cv.datetime,
             vol.Optional("valid_end"): cv.datetime,
+            # Keypad PIN. Entered at the door as "# + room_number + pin", so
+            # room_number should be set alongside it for keypad entry to work.
+            vol.Optional("pin"): vol.All(cv.string, vol.Length(min=4, max=8)),
         },
     ),
     "add_card": vol.Schema(
@@ -123,6 +126,7 @@ async def _dispatch(
                 room_number=call.data.get("room_number"),
                 floor_number=call.data.get("floor_number"),
                 validity=_validity(call),
+                pin=call.data.get("pin"),
             ),
         )
     elif service == "add_card":

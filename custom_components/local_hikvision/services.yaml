@@ -55,6 +55,13 @@ add_user:
       required: false
       selector:
         datetime:
+    pin:
+      required: false
+      example: "4821"
+      selector:
+        text:
+          multiline: false
+          type: password
 
 add_card:
   fields:
