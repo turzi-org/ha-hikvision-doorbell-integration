@@ -14,6 +14,7 @@ import asyncio
 import json
 import xml.etree.ElementTree as ET  # noqa: S405 - responses are from an authenticated LAN device
 from collections.abc import AsyncIterator
+from datetime import datetime
 from types import TracebackType
 from typing import Any, Self
 
@@ -34,9 +35,17 @@ from .models import (
     DeviceInfo,
     Person,
     UserCount,
+    Validity,
 )
 
 _DEFAULT_TIMEOUT = 10.0
+
+# The device requires a Valid element on every UserInfo record; when a person has
+# no explicit validity, enroll them as permanently valid.
+_PERMANENT_VALIDITY = Validity(
+    begin=datetime(2020, 1, 1, 0, 0, 0),
+    end=datetime(2037, 12, 31, 23, 59, 59),
+)
 
 
 def _raise_for_isapi_error(data: dict[str, Any], path: str) -> None:
@@ -273,9 +282,9 @@ class HikvisionClient:
             "employeeNo": person.employee_no,
             "name": person.name,
             "userType": person.user_type,
+            # Valid is required by the device — default to permanently valid.
+            "Valid": (person.validity or _PERMANENT_VALIDITY).to_isapi(),
         }
-        if person.validity is not None:
-            user["Valid"] = person.validity.to_isapi()
         if person.floor_number is not None:
             user["floorNumber"] = person.floor_number
         if person.room_number is not None:

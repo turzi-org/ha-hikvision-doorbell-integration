@@ -79,6 +79,21 @@ async def test_add_user_builds_expected_body() -> None:
 
 
 @respx.mock
+async def test_add_user_defaults_valid_when_omitted() -> None:
+    # The device rejects a UserInfo record without Valid ("required element(Valid)"),
+    # so add_user must always send one — defaulting to permanently valid.
+    route = respx.post(f"{BASE}/ISAPI/AccessControl/UserInfo/Record").mock(
+        return_value=httpx.Response(200, json=_OK),
+    )
+    async with _client() as c:
+        await c.add_user(Person(employee_no="1002", name="No Validity"))
+    sent = json.loads(route.calls.last.request.content)["UserInfo"]
+    assert sent["Valid"]["enable"] is True
+    assert "beginTime" in sent["Valid"]
+    assert "endTime" in sent["Valid"]
+
+
+@respx.mock
 async def test_add_card_body() -> None:
     route = respx.post(f"{BASE}/ISAPI/AccessControl/CardInfo/Record").mock(
         return_value=httpx.Response(200, json=_OK),
