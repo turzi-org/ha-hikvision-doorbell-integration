@@ -129,10 +129,33 @@ absent PIN field on ACS events).
 
 So on Hikvision the validity model is **per-credential**: cards = Hybrid (instant + local); PIN/face =
 local-enrollment only, no instant/unregistered path. This is exactly the fork in the original
-requirement ("if instant isn't possible, make the user wait until installed") — for Hikvision PINs, it's
-the wait-for-install branch, same as face. Card verification can use the brokered invalid-card event, or
-possibly a native platform-verify mode (`0x32`) — worth a follow-up config probe, but brokering already
-works.
+requirement ("if instant isn't possible, make the user wait until installed") — for Hikvision *per-user*
+PINs, it's the wait-for-install branch, same as face. Card verification can use the brokered invalid-card
+event, or possibly a native platform-verify mode (`0x32`) — worth a follow-up config probe, but brokering
+already works.
+
+### 3.1 Public/global passwords — a real answer to "PIN not tied to a local user" (live-confirmed)
+
+Separate from per-user `dynamicCode`, the device supports up to **16 global password slots**
+(`public1`-`public16`, plus a few special-purpose ones like `householderUnlock`), configured via
+`PrivilegePasswordStatus` and entered at the keypad as **`# + password`**. Live-captured on the non-prod
+device: entering a configured public password fires an `AccessControllerEvent`
+(`subEventType 0xd6`, `"Upload Device Unlocking Record Event"`) with **`unlockType:"password"` and
+`employeeNoString:""`** — genuinely not tied to any person, and the device does push it over `alertStream`.
+
+This satisfies the original ask (create codes not tied to a local user; device tells the auth server;
+match against the DB; log it) — **with two real constraints to design around**:
+- **Audit-after-the-fact, not pre-open.** The door has already unlocked by the time the event arrives —
+  it's a log/match mechanism, not an approve/deny gate. (Contrast with card brokering in §3, which can
+  gate *before* opening.)
+- **The event doesn't identify which slot or which digits were used** — only that *some* password
+  unlocked the door. Distinguish "which PIN" by correlating event **timestamp** against whichever slot
+  your DB currently has assigned. Capped at **16 concurrent distinct codes** system-wide.
+
+Not yet found: an ISAPI **write** endpoint for public passwords (only tested via the device's local UI so
+far). If the platform needs to *set* these programmatically rather than just react to their use, that
+endpoint needs locating — worth a follow-up if this becomes the shipped mechanism for "PIN not tied to a
+user."
 
 ---
 
