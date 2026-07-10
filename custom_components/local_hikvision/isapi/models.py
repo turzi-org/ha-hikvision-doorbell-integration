@@ -64,6 +64,10 @@ class DeviceEvent:
     employee_no: str | None = None
     name: str | None = None
     verify_mode: str | None = None
+    #: How the door was unlocked (e.g. ``"password"`` for a global/public
+    #: password — present on ``door_unlock_record`` events, which fire
+    #: after-the-fact, not as a pre-open verification request).
+    unlock_type: str | None = None
     serial_no: int | None = None
     door_no: int | None = None
     raw: dict[str, object] = field(default_factory=dict)

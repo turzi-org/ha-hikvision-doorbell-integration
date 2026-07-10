@@ -31,6 +31,29 @@ _SAMPLE = (
 )
 
 
+def test_public_password_unlock_labeled_and_not_tied_to_person() -> None:
+    # Real event captured on the non-prod KV9503 while entering "#9876" at the
+    # keypad (a public/global password, not linked to any UserInfo record).
+    obj = {
+        "eventType": "AccessControllerEvent",
+        "dateTime": "2026-06-02T13:23:29+08:00",
+        "AccessControllerEvent": {
+            "majorEventType": 5,
+            "subEventType": 214,
+            "employeeNoString": "",
+            "mask": "unknown",
+            "unlockType": "password",
+            "deviceNo": "10010100000",
+            "currentEvent": False,
+            "picturesNumber": 1,
+        },
+    }
+    ev = parse_event_json(obj)
+    assert ev.label == "door_unlocked_by_public_password"
+    assert ev.unlock_type == "password"
+    assert ev.employee_no is None  # confirms it's genuinely not tied to a person
+
+
 def test_iter_multipart_json_extracts_parts() -> None:
     objs = list(iter_multipart_json(_SAMPLE, "MIME_boundary"))
     assert len(objs) == 2

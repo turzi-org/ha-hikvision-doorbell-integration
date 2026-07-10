@@ -40,11 +40,23 @@ _ACS_SUBEVENT_LABELS: dict[int, str] = {
     0x4B: "face_valid",
     0x4C: "face_invalid",
     0x50: "face_not_exist",
+    # "Upload Device Unlocking Record Event" (ISAPI event-types reference).
+    # Fired post-unlock with an `unlockType` qualifier (e.g. "password" for a
+    # public/global password — not tied to any employeeNo). Audit-after-the-
+    # fact, not a pre-open broker: the door has already opened by the time
+    # this arrives. Live-confirmed on the KV9503 via a public-password entry.
+    0xD6: "door_unlock_record",
+    # More specific taxonomy entry for the same case; not observed live on
+    # this firmware (it sends 0xd6 + unlockType="password" instead), but kept
+    # for devices/firmware that do emit it directly.
+    0xE5: "door_unlocked_by_public_password",
 }
 
 
-def _label(major: int | None, sub: int | None) -> str:
+def _label(major: int | None, sub: int | None, unlock_type: str | None) -> str:
     """Return a stable semantic label for an ACS major/sub event code pair."""
+    if major == 5 and sub == 0xD6 and unlock_type == "password":
+        return "door_unlocked_by_public_password"
     if major == 5 and sub is not None and sub in _ACS_SUBEVENT_LABELS:
         return _ACS_SUBEVENT_LABELS[sub]
     if major is None and sub is None:
@@ -72,8 +84,9 @@ def parse_event_json(obj: dict[str, Any]) -> DeviceEvent:
         """Coerce a JSON value to ``int`` when it already is one, else ``None``."""
         return int(value) if isinstance(value, int) else None
 
+    unlock_type = ace.get("unlockType")
     label = (
-        _label(_int(major), _int(sub))
+        _label(_int(major), _int(sub), unlock_type)
         if event_type == "AccessControllerEvent"
         else event_type
     )
@@ -85,9 +98,11 @@ def parse_event_json(obj: dict[str, Any]) -> DeviceEvent:
         sub_event_type=_int(sub),
         card_no=ace.get("cardNo"),
         # ISAPI uses employeeNoString on newer firmware, employeeNo on older.
-        employee_no=ace.get("employeeNoString") or ace.get("employeeNo"),
+        # Empty string for global/public-password unlocks (not tied to a person).
+        employee_no=ace.get("employeeNoString") or ace.get("employeeNo") or None,
         name=ace.get("name"),
         verify_mode=ace.get("currentVerifyMode"),
+        unlock_type=unlock_type,
         serial_no=_int(ace.get("serialNo")),
         door_no=_int(ace.get("doorNo")),
         raw=obj,
