@@ -47,13 +47,17 @@ class HikvisionDoorLock(HikvisionEntity, LockEntity):
         self._attr_is_locked = True
 
     async def async_open(self, **kwargs: Any) -> None:
-        """Pulse the relay open."""
+        """Pulse the relay open, reflecting the new state in HA."""
         await self.coordinator.client.open_door(self._door_no, cmd="open")
+        self._attr_is_locked = False
+        self.async_write_ha_state()
 
     async def async_unlock(self, **kwargs: Any) -> None:
         """Unlock == momentary open for a door strike."""
-        await self.coordinator.client.open_door(self._door_no, cmd="open")
+        await self.async_open(**kwargs)
 
     async def async_lock(self, **kwargs: Any) -> None:
-        """Explicitly close/lock the relay."""
+        """Explicitly close/lock the relay, reflecting the new state in HA."""
         await self.coordinator.client.open_door(self._door_no, cmd="close")
+        self._attr_is_locked = True
+        self.async_write_ha_state()
