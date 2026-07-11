@@ -13,25 +13,13 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from .const import EVENT_ACCESS, SIGNAL_ACCESS_EVENT
 from .coordinator import HikvisionConfigEntry, HikvisionCoordinator
 from .entity import HikvisionEntity
-from .isapi import DeviceEvent
+from .isapi import ACCESS_EVENT_LABELS, DeviceEvent
 
-# The set of access-event labels this entity advertises + relays.
-_EVENT_TYPES = [
-    "card_valid",
-    "card_invalid",
-    "card_no_right",
-    "card_invalid_period",
-    "card_expired",
-    "face_valid",
-    "face_invalid",
-    "face_not_exist",
-    "fingerprint_valid",
-    "fingerprint_invalid",
-    "doorbell_ringing",
-    "door_unlocked",
-    "door_locked",
-    "other",
-]
+# The set of access-event labels this entity advertises + relays, derived from
+# isapi.events' single source of truth so it can't drift out of sync as new
+# labels are added there. "other" is the catch-all for anything not in that
+# set (non-ACS events, or an unrecognized ACS code).
+_EVENT_TYPES = [*sorted(ACCESS_EVENT_LABELS), "other"]
 
 
 async def async_setup_entry(

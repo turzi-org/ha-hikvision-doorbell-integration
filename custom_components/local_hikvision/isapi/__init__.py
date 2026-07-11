@@ -13,6 +13,7 @@ from .errors import (
     HikvisionParseError,
     HikvisionResponseError,
 )
+from .events import ACCESS_EVENT_LABELS
 from .models import (
     AcsConfig,
     Capabilities,
@@ -25,6 +26,7 @@ from .models import (
 )
 
 __all__ = [
+    "ACCESS_EVENT_LABELS",
     "AcsConfig",
     "Capabilities",
     "Card",

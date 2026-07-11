@@ -30,7 +30,37 @@
       "door_contact": { "name": "Door {door} contact" }
     },
     "event": {
-      "access": { "name": "Access" }
+      "access": {
+        "name": "Access",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "card_valid": "Card valid",
+              "card_no_right": "Card has no right",
+              "card_invalid_period": "Card outside valid period",
+              "card_expired": "Card expired",
+              "card_invalid": "Unregistered card",
+              "door_unlocked": "Door unlocked",
+              "door_locked": "Door locked",
+              "door_open_normal": "Door opened",
+              "door_close_normal": "Door closed",
+              "door_open_abnormal": "Door opened abnormally",
+              "door_open_timeout": "Door open timeout",
+              "doorbell_ringing": "Doorbell ringing",
+              "fingerprint_valid": "Fingerprint valid",
+              "fingerprint_invalid": "Fingerprint invalid",
+              "call_center": "Call center",
+              "face_valid": "Face recognized",
+              "face_invalid": "Face not recognized",
+              "face_not_exist": "Face not enrolled",
+              "door_unlock_record": "Door unlocked",
+              "door_unlocked_by_public_password": "Door unlocked by public password",
+              "password_auth_failed": "Password authentication failed",
+              "other": "Other event"
+            }
+          }
+        }
+      }
     }
   },
   "services": {

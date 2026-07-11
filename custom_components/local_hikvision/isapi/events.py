@@ -58,6 +58,15 @@ _ACS_SUBEVENT_LABELS: dict[int, str] = {
     0x96: "password_auth_failed",
 }
 
+#: All stable semantic labels this module can produce for AccessControllerEvent
+#: (major type 5), i.e. every value ``label`` may take besides the dynamic
+#: ``acs_<major>_<sub>`` fallback for unrecognized codes. Single source of
+#: truth — consumers (e.g. the HA event entity) should derive their known
+#: event-type list from this instead of hand-maintaining a duplicate.
+ACCESS_EVENT_LABELS: frozenset[str] = frozenset(
+    {*_ACS_SUBEVENT_LABELS.values(), "door_unlocked_by_public_password"},
+)
+
 
 def _label(major: int | None, sub: int | None, unlock_type: str | None) -> str:
     """Return a stable semantic label for an ACS major/sub event code pair."""
