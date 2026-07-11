@@ -31,6 +31,33 @@ _SAMPLE = (
 )
 
 
+def test_json_part_with_undersized_content_length_is_trimmed() -> None:
+    # Regression for a real HA crash: a JSON part's Content-Length correctly
+    # bounds the payload even when trailing non-UTF-8 bytes (e.g. from an
+    # adjacent binary Picture part bleeding in) follow it in the same segment.
+    json_body = b'{"eventType":"videoloss","eventState":"inactive"}'
+    segment = (
+        b"--MIME_boundary\r\n"
+        b"Content-Type: application/json\r\n"
+        b"Content-Length: " + str(len(json_body)).encode() + b"\r\n\r\n"
+        + json_body + b"\xd2\xff\xd8\xff\xe0garbage"  # invalid UTF-8 trailer
+    )
+    objs = list(iter_multipart_json(segment, "MIME_boundary"))
+    assert objs == [{"eventType": "videoloss", "eventState": "inactive"}]
+
+
+def test_malformed_part_is_skipped_not_raised() -> None:
+    # A part with no Content-Length and invalid UTF-8 in the body must be
+    # skipped, never crash the caller (this previously killed the whole
+    # event listener with an uncaught UnicodeDecodeError).
+    segment = (
+        b"--MIME_boundary\r\n"
+        b"Content-Type: application/json\r\n\r\n"
+        b"{\xd2 not valid json or utf-8"
+    )
+    assert list(iter_multipart_json(segment, "MIME_boundary")) == []
+
+
 def test_failed_password_auth_carries_no_credential_value() -> None:
     # Real event captured on the non-prod KV9503 after entering a wrong/
     # unregistered code ("#0000") at the keypad. Confirms empirically that a

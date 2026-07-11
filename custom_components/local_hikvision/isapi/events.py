@@ -115,11 +115,27 @@ def parse_event_json(obj: dict[str, Any]) -> DeviceEvent:
     )
 
 
+def _content_length(headers: bytes) -> int | None:
+    """Extract the ``Content-Length`` value from a MIME part's headers."""
+    for line in headers.splitlines():
+        name, _, value = line.partition(b":")
+        if name.strip().lower() == b"content-length":
+            try:
+                return int(value.strip())
+            except ValueError:
+                return None
+    return None
+
+
 def iter_multipart_json(body: bytes, boundary: str) -> Iterator[dict[str, Any]]:
     """Yield JSON objects from a complete multipart/mixed ``alertStream`` body.
 
     Splits on the MIME ``boundary`` and extracts the JSON payload after each
-    part's blank-line header separator. Malformed / non-JSON parts are skipped.
+    part's blank-line header separator, trimmed to the part's own
+    ``Content-Length`` when present (rather than assuming the payload ends
+    right before the next boundary — a following binary part, e.g. a JPEG
+    snapshot, can otherwise bleed into the JSON body and corrupt it).
+    Malformed / non-JSON / non-UTF-8 parts are skipped, never raised.
 
     Args:
         body: The (buffered) multipart bytes.
@@ -136,13 +152,16 @@ def iter_multipart_json(body: bytes, boundary: str) -> Iterator[dict[str, Any]]:
             continue
         # Headers and body are separated by a blank line (CRLF CRLF or LF LF).
         sep = b"\r\n\r\n" if b"\r\n\r\n" in part else b"\n\n"
-        _, _, payload = part.partition(sep)
+        headers, _, payload = part.partition(sep)
         payload = payload.strip()
         if not payload.startswith(b"{"):
             continue
+        length = _content_length(headers)
+        if length is not None:
+            payload = payload[:length]
         try:
             yield json.loads(payload)
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
             continue
 
 

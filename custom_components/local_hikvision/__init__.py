@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+import functools
+
 from homeassistant.const import (
     CONF_HOST,
     CONF_PASSWORD,
@@ -24,12 +26,18 @@ async def async_setup_entry(
     entry: HikvisionConfigEntry,
 ) -> bool:
     """Set up Turzi Local Hikvision from a config entry."""
-    client = HikvisionClient(
-        entry.data[CONF_HOST],
-        entry.data[CONF_USERNAME],
-        entry.data[CONF_PASSWORD],
-        port=entry.data.get(CONF_PORT, DEFAULT_PORT),
-        use_tls=entry.data.get(CONF_USE_TLS, False),
+    # Constructing HikvisionClient builds an httpx.AsyncClient, which performs
+    # blocking SSL-context setup (e.g. reading the CA bundle) — must not run
+    # directly on the event loop.
+    client = await hass.async_add_executor_job(
+        functools.partial(
+            HikvisionClient,
+            entry.data[CONF_HOST],
+            entry.data[CONF_USERNAME],
+            entry.data[CONF_PASSWORD],
+            port=entry.data.get(CONF_PORT, DEFAULT_PORT),
+            use_tls=entry.data.get(CONF_USE_TLS, False),
+        ),
     )
     coordinator = HikvisionCoordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()

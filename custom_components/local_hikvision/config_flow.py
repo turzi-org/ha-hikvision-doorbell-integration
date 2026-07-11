@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import functools
 from typing import Any
 
 import voluptuous as vol
@@ -47,12 +48,17 @@ class HikvisionConfigFlow(ConfigFlow, domain=DOMAIN):
         """Handle the initial step: validate the connection and create the entry."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            client = HikvisionClient(
-                user_input[CONF_HOST],
-                user_input[CONF_USERNAME],
-                user_input[CONF_PASSWORD],
-                port=user_input[CONF_PORT],
-                use_tls=user_input[CONF_USE_TLS],
+            # Building HikvisionClient constructs an httpx.AsyncClient, which
+            # performs blocking SSL-context setup — keep it off the event loop.
+            client = await self.hass.async_add_executor_job(
+                functools.partial(
+                    HikvisionClient,
+                    user_input[CONF_HOST],
+                    user_input[CONF_USERNAME],
+                    user_input[CONF_PASSWORD],
+                    port=user_input[CONF_PORT],
+                    use_tls=user_input[CONF_USE_TLS],
+                ),
             )
             try:
                 info = await client.get_device_info()
