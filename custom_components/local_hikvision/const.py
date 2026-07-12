@@ -23,6 +23,12 @@ CONF_USE_TLS: Final = "use_tls"
 DEFAULT_PORT: Final = 80
 DEFAULT_SCAN_INTERVAL: Final = 60  # seconds — diagnostics poll; events are push
 
+# How long the lock entity shows "unlocked" after an open pulse before
+# reverting to "locked". Cosmetic approximation only — this device gives no
+# ground truth (event or polled) for when the relay itself re-locks; see
+# lock.py's docstring for what was checked.
+DOOR_RELOCK_DELAY: Final = 3  # seconds
+
 # Dispatcher signal (per config entry) carrying a pylocal_hikvision DeviceEvent.
 SIGNAL_ACCESS_EVENT: Final = f"{DOMAIN}_access_event_{{}}"
 

@@ -5,17 +5,17 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from homeassistant.components.lock import LockEntity, LockEntityFeature
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.event import async_call_later
 
-from .const import DOOR_CLOSE_LABELS, DOOR_OPEN_LABELS, SIGNAL_ACCESS_EVENT
+from .const import DOOR_RELOCK_DELAY
 from .coordinator import HikvisionConfigEntry, HikvisionCoordinator
 from .entity import HikvisionEntity
-from .isapi import DeviceEvent
 
 
 async def async_setup_entry(
@@ -35,10 +35,17 @@ async def async_setup_entry(
 class HikvisionDoorLock(HikvisionEntity, LockEntity):
     """A door relay exposed as a lock supporting the momentary open action.
 
-    The device reports its own door state transitions over the alertStream
-    (the same feed the door-contact binary_sensor uses); this entity's
-    "locked"/"unlocked" state is driven by those pushed events, not by a
-    client-side timer guessing how long the strike stays open.
+    This device gives no ground truth for when the relay itself re-locks:
+    confirmed live that neither a push event (the "Door Unlocked"/"Door
+    Locked" relay-status codes never fire for a software-triggered open) nor
+    a polled status field (``AcsWorkStatus.doorLockStatus`` is absent on this
+    firmware) reflects it. The door-contact events that *do* fire
+    ("Door Open/Closed (Contact)") are a different concept — the physical
+    door's magnetic contact, not the strike itself — and are used by the
+    separate door-contact binary_sensor instead.
+
+    So "locked" here is a **cosmetic approximation**: it flips to "unlocked"
+    on open and reverts after :data:`DOOR_RELOCK_DELAY`, not a verified fact.
     """
 
     _attr_supported_features = LockEntityFeature.OPEN
@@ -52,39 +59,52 @@ class HikvisionDoorLock(HikvisionEntity, LockEntity):
         self._attr_translation_key = "door"
         self._attr_translation_placeholders = {"door": str(door_no)}
         self._attr_is_locked = True
+        self._cancel_relock: Callable[[], None] | None = None
 
-    async def async_added_to_hass(self) -> None:
-        """Subscribe to pushed events for door-state updates."""
-        await super().async_added_to_hass()
-        signal = SIGNAL_ACCESS_EVENT.format(self.coordinator.config_entry.entry_id)
-        self.async_on_remove(
-            async_dispatcher_connect(self.hass, signal, self._handle_event),
+    async def async_will_remove_from_hass(self) -> None:
+        """Cancel any pending auto-relock timer on removal."""
+        self._cancel_pending_relock()
+
+    def _cancel_pending_relock(self) -> None:
+        """Cancel a scheduled auto-relock, if one is pending."""
+        if self._cancel_relock is not None:
+            self._cancel_relock()
+            self._cancel_relock = None
+
+    def _schedule_relock(self) -> None:
+        """Revert to "locked" after :data:`DOOR_RELOCK_DELAY`.
+
+        Cancels any previously scheduled revert first, so repeated opens
+        don't race each other.
+        """
+        self._cancel_pending_relock()
+        self._cancel_relock = async_call_later(
+            self.hass,
+            DOOR_RELOCK_DELAY,
+            self._handle_relock,
         )
 
     @callback
-    def _handle_event(self, event: DeviceEvent) -> None:
-        """Sync locked state from the device's own door state events."""
-        if event.door_no is not None and event.door_no != self._door_no:
-            return
-        if event.label in DOOR_OPEN_LABELS:
-            self._attr_is_locked = False
-            self.async_write_ha_state()
-        elif event.label in DOOR_CLOSE_LABELS:
-            self._attr_is_locked = True
-            self.async_write_ha_state()
+    def _handle_relock(self, _now: object) -> None:
+        """Flip back to "locked" once the relock delay elapses."""
+        self._cancel_relock = None
+        self._attr_is_locked = True
+        self.async_write_ha_state()
 
     async def async_open(self, **kwargs: Any) -> None:
-        """Pulse the relay open.
-
-        Doesn't set state directly — the resulting door_unlocked/door_locked
-        events from the device (via _handle_event) are the source of truth.
-        """
+        """Pulse the relay open, approximating the resulting state in HA."""
         await self.coordinator.client.open_door(self._door_no, cmd="open")
+        self._attr_is_locked = False
+        self.async_write_ha_state()
+        self._schedule_relock()
 
     async def async_unlock(self, **kwargs: Any) -> None:
         """Unlock == momentary open for a door strike."""
         await self.async_open(**kwargs)
 
     async def async_lock(self, **kwargs: Any) -> None:
-        """Explicitly close/lock the relay."""
+        """Explicitly close/lock the relay, reflecting the new state in HA."""
+        self._cancel_pending_relock()
         await self.coordinator.client.open_door(self._door_no, cmd="close")
+        self._attr_is_locked = True
+        self.async_write_ha_state()
