@@ -639,6 +639,11 @@ class HikvisionClient:
         reconnects, resetting the backoff after any successful event. Runs until
         the caller stops iterating (or is cancelled).
 
+        A 401 on the long-lived stream (the device expiring its digest nonce
+        under sustained use — the same cause fixed for one-shot requests in
+        ``_request``) is treated as reconnectable too: the auth challenge is
+        reset before retrying, rather than letting it kill the listener.
+
         Args:
             base_backoff: Initial delay (seconds) after a failure.
             max_backoff: Ceiling for the backoff delay.
@@ -653,6 +658,8 @@ class HikvisionClient:
                 async for event in self.stream_events():
                     backoff = base_backoff
                     yield event
+            except HikvisionAuthenticationError:
+                self._client.auth = self._new_auth()
             except (HikvisionConnectionError, HikvisionResponseError):
                 pass
             await asyncio.sleep(backoff)
