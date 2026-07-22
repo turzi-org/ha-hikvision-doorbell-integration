@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Turzi
 # SPDX-License-Identifier: Apache-2.0
 
-"""Binary sensors — device connectivity and per-door contact state."""
+"""Binary sensors — device connectivity and door contact state."""
 
 from __future__ import annotations
 
@@ -24,15 +24,14 @@ async def async_setup_entry(
     entry: HikvisionConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Create the connectivity sensor plus one door-contact sensor per door."""
+    """Create the connectivity sensor plus a single shared door-contact sensor."""
     coordinator = entry.runtime_data
-    door_count = coordinator.data.capabilities.door_count or 1
-    entities: list[BinarySensorEntity] = [HikvisionOnlineSensor(coordinator)]
-    entities.extend(
-        HikvisionDoorContact(coordinator, door_no)
-        for door_no in range(1, door_count + 1)
+    async_add_entities(
+        [
+            HikvisionOnlineSensor(coordinator),
+            HikvisionDoorContact(coordinator),
+        ],
     )
-    async_add_entities(entities)
 
 
 class HikvisionOnlineSensor(HikvisionEntity, BinarySensorEntity):
@@ -55,18 +54,24 @@ class HikvisionOnlineSensor(HikvisionEntity, BinarySensorEntity):
 
 
 class HikvisionDoorContact(HikvisionEntity, BinarySensorEntity):
-    """Door open/closed state, updated from pushed access events."""
+    """Door open/closed state, updated from pushed access events.
+
+    A single shared sensor across all doors: this device's door-contact
+    events (live-confirmed on hardware) carry no field identifying which of
+    its multiple physical inputs changed, so per-door attribution isn't
+    possible from this event stream. Unlike door contacts, relay/lock
+    commands ARE addressed to a specific door number and stay one entity per
+    door (see lock.py) — only the input side is ambiguous.
+    """
 
     _attr_device_class = BinarySensorDeviceClass.DOOR
+    _attr_translation_key = "door_contact"
 
-    def __init__(self, coordinator: HikvisionCoordinator, door_no: int) -> None:
-        """Initialize a door-contact sensor for the given door number."""
+    def __init__(self, coordinator: HikvisionCoordinator) -> None:
+        """Initialize the shared door-contact sensor."""
         super().__init__(coordinator)
-        self._door_no = door_no
         serial = coordinator.data.device_info.serial_number
-        self._attr_unique_id = f"{serial}_door_{door_no}_contact"
-        self._attr_translation_key = "door_contact"
-        self._attr_translation_placeholders = {"door": str(door_no)}
+        self._attr_unique_id = f"{serial}_door_contact"
         self._attr_is_on = False
 
     async def async_added_to_hass(self) -> None:
@@ -79,9 +84,7 @@ class HikvisionDoorContact(HikvisionEntity, BinarySensorEntity):
 
     @callback
     def _handle_event(self, event: DeviceEvent) -> None:
-        """Flip state when a matching door open/close event arrives."""
-        if event.door_no is not None and event.door_no != self._door_no:
-            return
+        """Flip state when a door open/close event arrives (any input)."""
         if event.label in DOOR_OPEN_LABELS:
             self._attr_is_on = True
             self.async_write_ha_state()

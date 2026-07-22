@@ -27,7 +27,7 @@
     },
     "binary_sensor": {
       "online": { "name": "Online" },
-      "door_contact": { "name": "Door {door} contact" }
+      "door_contact": { "name": "Door contact" }
     },
     "event": {
       "access": {
