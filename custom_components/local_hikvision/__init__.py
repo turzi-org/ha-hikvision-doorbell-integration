@@ -15,7 +15,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_USE_TLS, DEFAULT_PORT, PLATFORMS
+from .const import CONF_TIMEOUT, CONF_USE_TLS, DEFAULT_PORT, DEFAULT_TIMEOUT, PLATFORMS
 from .coordinator import HikvisionConfigEntry, HikvisionCoordinator
 from .isapi import HikvisionClient
 from .services import async_setup_services
@@ -37,6 +37,8 @@ async def async_setup_entry(
             entry.data[CONF_PASSWORD],
             port=entry.data.get(CONF_PORT, DEFAULT_PORT),
             use_tls=entry.data.get(CONF_USE_TLS, False),
+            # entries created before CONF_TIMEOUT existed fall back to the default.
+            timeout=entry.data.get(CONF_TIMEOUT, DEFAULT_TIMEOUT),
         ),
     )
     coordinator = HikvisionCoordinator(hass, entry, client)

@@ -19,9 +19,18 @@ PLATFORMS: Final[list[Platform]] = [
 
 # Config entry keys (host/port/username/password come from homeassistant.const).
 CONF_USE_TLS: Final = "use_tls"
+CONF_TIMEOUT: Final = "timeout"
 
 DEFAULT_PORT: Final = 80
 DEFAULT_SCAN_INTERVAL: Final = 60  # seconds — diagnostics poll; events are push
+# HTTP request timeout. Some devices sit behind slow/high-latency links (e.g.
+# an LTE router) where a plain TCP connect alone has been observed taking
+# 4-6+ seconds — the previous hardcoded 10s was not enough headroom, and
+# wasn't user-configurable at all. Kept generous by default and adjustable
+# per device for slower links.
+DEFAULT_TIMEOUT: Final = 20  # seconds
+MIN_TIMEOUT: Final = 5
+MAX_TIMEOUT: Final = 120
 
 # How long the lock entity shows "unlocked" after an open pulse before
 # reverting to "locked". Cosmetic approximation only — this device gives no
